@@ -5,22 +5,29 @@ import TaskCard from '../components/TaskCard.jsx'
 import SearchFilterBar from '../components/SearchFilterBar.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonGrid, RowSkeleton } from '../components/LoadingSkeleton.jsx'
-import { currentUser, projects, tasks, activity } from '../data/mockData.js'
+import { currentUser, activity } from '../data/mockData.js'
+import { fetchDashboardData } from '../data/api.js'
 
 export default function Dashboard() {
-  // Simulates an async fetch to the Task 2 API / Task 3 database.
   const [isLoading, setIsLoading] = useState(true)
+  const [projects, setProjects] = useState([])
+  const [tasks, setTasks] = useState([])
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 700)
-    return () => clearTimeout(timer)
+    fetchDashboardData()
+      .then((data) => {
+        setProjects(data.projects)
+        setTasks(data.tasks)
+      })
+      .catch((err) => console.error('Could not load data:', err))
+      .finally(() => setIsLoading(false))
   }, [])
 
   const projectNameById = useMemo(
     () => Object.fromEntries(projects.map((p) => [p.id, p.name])),
-    []
+    [projects]
   )
 
   const filteredTasks = useMemo(() => {
@@ -29,13 +36,13 @@ export default function Dashboard() {
       const matchesStatus = status === 'all' || t.status === status
       return matchesQuery && matchesStatus
     })
-  }, [query, status])
+  }, [tasks, query, status])
 
   const stats = useMemo(() => {
     const done = tasks.filter((t) => t.status === 'done').length
     const inProgress = tasks.filter((t) => t.status === 'in-progress').length
     return { total: tasks.length, done, inProgress }
-  }, [])
+  }, [tasks])
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 space-y-8">
